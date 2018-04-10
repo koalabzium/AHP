@@ -1,59 +1,78 @@
 import json
+from pprint import pprint
+
+data = json.load(open('agusi.json'))
+
+for i in data["alternatives"]:
+    print(i)
 
 
 #ZCZYTYWANIE
 
 dict = {}
-alternatives = []
-goal = input("Jaki masz cel?")
-alternatives_count = int(input("Ile masz alternatyw? "))
 
-for i in range(alternatives_count):
-    tmp = input("Podaj alternatywe nr " + str(i + 1))
-    alternatives.append(tmp)
+def get_alternatives():
+    alternatives = []
+    goal = input("Jaki masz cel?")
+    alternatives_count = int(input("Ile masz alternatyw? "))
 
-criterium_count = int(input("Ile masz kryteriow? "))
-dict_crit = {}
-if criterium_count:
-    alternatives_matrix = [float(x) for x in input('Podaj macierz porównań alternatyw wg tych kryteriów: ').split()]
-else:
-    alternatives_matrix = [float(x) for x in input('Podaj macierz porównań alternatyw: ').split()]
-    #alternatives_matrix = input('Podaj: ')
+    for i in range(alternatives_count):
+        tmp = input("Podaj alternatywe nr " + str(i + 1))
+        alternatives.append(tmp)
+    return alternatives
+
+alternatives = get_alternatives()
+
+cryt_count = int(input("Ile jest kryteriów?"))
+
+def get_cryterium(slownik, cryt_count):
+    cryt=[]
+    for j in range(cryt_count):
+        cryt.append(input("Podaj nazwę kryterium nr" + str(j + 1)))
+    if cryt_count>1:
+        slownik["matrix"] = make_matrix(cryt)
+
+    for i in range(cryt_count):
+        cryt_name = cryt[i]
+        flaga = int(input("Ile kryterium " + cryt[i] + " ma podkryteriów?"))
+        if flaga:
+            slownik[cryt_name] = {}
+            nowy_slownik = slownik[cryt_name]
+            get_cryterium(nowy_slownik, flaga)
+        else:
+            slownik[cryt_name] = make_matrix2(alternatives, cryt_name)
+    return 0
+
+def make_matrix2(alternatives, cryt_name):
+    matrix = []
+    for i in range(len(alternatives)):
+        for j in range(len(alternatives)):
+            if i==j:
+                matrix.append(1)
+            elif i<j:
+                matrix.append(float(input("Ile razy wg kryterium " + cryt_name + " alternatywa " + alternatives[i] + " jest lepsza od alternatywy " + alternatives[j])))
+            else:
+                matrix.append(1/matrix[((i+1)*(j+1))-1])
 
 
+    return [float(x) for x in matrix]
 
-
-for i in range(criterium_count):
-    name = input("Podaj kryterium nr " + str(i + 1))
-    sub_count = int(input("Podaj ilość subkryteriów: "))
-    if sub_count:
-        cr_matrix = [float(x) for x in input('Podaj macierz porównań podkryteriów kryterium "' + name + '": ').split()]
-        dict_sub = {}
-        dict_sub["matrix"] = cr_matrix
-        for i in range(sub_count):
-            sub_name = input("Podaj nazwę podkryterium " + str(i + 1) + ": ")
-            sub_matrix = [float(x) for x in input('Podaj macierz porównań wg podkryterium "' + sub_name + '": ').split()]
-            dict_sub[sub_name] = sub_matrix
-        dict_crit[name] = dict_sub
-
-    else:
-        cr_matrix = [float(x) for x in input('Podaj macierz porównań alternatyw na podstawie kryterium "' + name + '": ').split()]
-        dict_crit['matrix'] = alternatives_matrix
-        dict_crit[name] = cr_matrix
-    subs = []
-
+def make_matrix(cryt):
+    matrix = []
+    for i in range(len(cryt)):
+        for j in range(len(cryt)):
+            if i==j:
+                matrix.append(1)
+            elif i<j:
+                matrix.append(float(input("Ile razy kryterium " + cryt[i] + " jest wazniejsze od kryterium " + cryt[j])))
+            else:
+                matrix.append(1/matrix[((i+1)*(j+1))-1])
+    return [float(x) for x in matrix]
 
 
 dict['Alternatives'] = alternatives
-if criterium_count:
-    dict[goal] = dict_crit
-else:
-    dict[goal] = alternatives_matrix
-
-
-
-#do jsona
-
+dict['goal'] = {}
+get_cryterium(dict['goal'], cryt_count)
 
 with open('result.json', 'w') as fp:
     json.dump(dict, fp, indent=4)
